@@ -16,41 +16,19 @@ echo "         (scenario: ${SCENARIO})"
 echo "============================================="
 
 echo ""
-echo "  Manifests are pushed to the fleet repo."
+echo "  Manifests are committed to the repo."
 echo "  Flux reconciles them into the cluster."
 echo "  NO direct kubectl apply — pure GitOps."
 echo ""
 
-# Use an isolated temp dir per run — avoids stale state from previous runs
-REPO_DIR=$(mktemp -d "/tmp/fleet-${GITHUB_REPO}-XXXXXX")
-trap 'rm -rf "$REPO_DIR"' EXIT
-
-git clone --branch "${GITHUB_BRANCH}" --single-branch \
-  "https://${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${GITHUB_REPO}.git" "$REPO_DIR"
-
-push_to_fleet() {
+deploy_app() {
   local file="$1"
   local name
   name=$(basename "$file" .yaml)
 
-  echo "→ Pushing ${name} to fleet repo (apps/k8sgpt-demo/)..."
-
-  cd "$REPO_DIR"
-  git pull --rebase origin "${GITHUB_BRANCH}" || true
-
-  mkdir -p "apps/k8sgpt-demo"
-  cp "$file" "apps/k8sgpt-demo/${name}.yaml"
-  git add .
-
-  if git diff --cached --quiet; then
-    echo "  (no changes — ${name} already in fleet repo)"
-  else
-    git commit -m "deploy broken app: ${name} [auto-heal demo]"
-    git push origin "${GITHUB_BRANCH}"
-    echo "  ✅ Pushed to fleet repo — Flux will reconcile shortly"
-  fi
-
-  cd "$ROOT_DIR"
+  echo "→ Adding ${name} to apps/k8sgpt-demo/..."
+  mkdir -p "$ROOT_DIR/apps/k8sgpt-demo"
+  cp "$file" "$ROOT_DIR/apps/k8sgpt-demo/${name}.yaml"
 }
 
 BROKEN_DIR="$ROOT_DIR/manifests/broken-apps"
@@ -58,26 +36,37 @@ BROKEN_DIR="$ROOT_DIR/manifests/broken-apps"
 case "$SCENARIO" in
   all)
     for f in "$BROKEN_DIR"/*.yaml; do
-      push_to_fleet "$f"
+      deploy_app "$f"
     done
     ;;
   nginx)
-    push_to_fleet "$BROKEN_DIR/nginx-readonly.yaml"
+    deploy_app "$BROKEN_DIR/nginx-readonly.yaml"
     ;;
   service)
-    push_to_fleet "$BROKEN_DIR/service-no-endpoints.yaml"
+    deploy_app "$BROKEN_DIR/service-no-endpoints.yaml"
     ;;
   oom)
-    push_to_fleet "$BROKEN_DIR/memory-hog.yaml"
+    deploy_app "$BROKEN_DIR/memory-hog.yaml"
     ;;
   image)
-    push_to_fleet "$BROKEN_DIR/bad-image.yaml"
+    deploy_app "$BROKEN_DIR/bad-image.yaml"
     ;;
   *)
     echo "Usage: $0 [all|nginx|service|oom|image]"
     exit 1
     ;;
 esac
+
+# Commit and push
+cd "$ROOT_DIR"
+git add apps/
+if git diff --cached --quiet; then
+  echo "  (no changes — apps already committed)"
+else
+  git commit -m "deploy broken app(s): ${SCENARIO} [auto-heal demo]"
+  git push origin "${GITHUB_BRANCH}"
+  echo "  ✅ Pushed — Flux will reconcile shortly"
+fi
 
 # Trigger Flux reconciliation immediately instead of waiting
 echo ""
@@ -94,7 +83,7 @@ echo "→ Pod status in demo-apps namespace:"
 kubectl get pods -n demo-apps 2>/dev/null || echo "  (namespace may not exist yet — Flux is reconciling)"
 
 echo ""
-echo "✅ Broken apps pushed to fleet repo."
+echo "✅ Broken apps committed and pushed."
 echo "   Flux will deploy them within ~5 minutes (or sooner via reconcile trigger)."
 echo ""
 echo "   Watch Flux status:      flux get kustomizations"

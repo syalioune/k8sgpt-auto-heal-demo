@@ -8,7 +8,7 @@ Flow:
   1. Watch for new/updated Result CRDs in the K8sGPT namespace
   2. For each Result, gather context (pod spec, events, logs, deployment)
   3. Call OpenAI API to generate a remediation patch
-  4. Create a GitHub PR with the fix in the GitOps fleet repo
+  4. Create a GitHub PR with the fix in the GitOps repo
   5. Annotate the Result CR to track remediation state
 """
 
@@ -217,7 +217,7 @@ OUTPUT FORMAT (use these exact markers):
 ---PR_DESCRIPTION---
 <markdown description of problem + fix>
 ---MANIFEST_PATH---
-<relative path in the fleet repo, e.g. apps/k8sgpt-demo/nginx-deployment.yaml>
+<relative path in the repo, e.g. apps/k8sgpt-demo/nginx-deployment.yaml>
 ---MANIFEST---
 <the complete fixed YAML manifest>
 """
@@ -272,7 +272,7 @@ def generate_remediation_via_api(result_details, k8s_context):
 {k8s_context.get('endpoints', '(not applicable)')}
 ```
 
-## GitOps Fleet Repo Info
+## GitOps Repo Info
 - Apps path: {FLEET_APPS_PATH}
 - The fixed manifest should be placed at a path under this directory.
 
@@ -320,7 +320,7 @@ def parse_remediation_response(response_text):
 
 
 def create_remediation_pr(sections, result_name):
-    """Create a PR in the GitOps fleet repo with the fix."""
+    """Create a PR in the GitOps repo with the fix."""
     gh = Github(GITHUB_TOKEN)
     repo = gh.get_repo(GITHUB_REPO)
 
@@ -519,7 +519,7 @@ def run_watcher():
     logger.info("k8sgpt-auto-heal watcher started")
     logger.info(f"  Namespace:  {K8SGPT_NAMESPACE}")
     logger.info(f"  Model:      {OPENAI_MODEL}")
-    logger.info(f"  Fleet repo: {GITHUB_REPO}")
+    logger.info(f"  Repo: {GITHUB_REPO}")
     logger.info(f"  Fleet path: {FLEET_APPS_PATH}")
     logger.info(f"  Dry run:    {DRY_RUN}")
     logger.info("=" * 60)

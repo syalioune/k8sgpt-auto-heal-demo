@@ -12,7 +12,7 @@ K8sGPT detects issues → OpenAI generates fixes → PRs are created on GitHub �
 │                      Kind Cluster                                │
 │                                                                  │
 │  ┌────────────┐                                                 │
-│  │  FluxCD    │ ◀── watches ── GitHub Fleet Repo                │
+│  │  FluxCD    │ ◀── watches ── GitHub Repo (this repo)         │
 │  │            │                                                  │
 │  │ Reconciles │──┬─ HelmRelease ──▶ K8sGPT Operator             │
 │  │ everything │  ├─ Kustomization ─▶ K8sGPT Config (CR)         │
@@ -38,7 +38,7 @@ K8sGPT detects issues → OpenAI generates fixes → PRs are created on GitHub �
 │  └────────────┘                        ▼                        │
 │                                ┌───────────────┐               │
 │                                │  GitHub Repo   │               │
-│                                │  (fleet)       │               │
+│                                │  (this repo)   │               │
 │                                │                │               │
 │                                │ clusters/      │               │
 │                                │ infrastructure/│               │
@@ -54,8 +54,8 @@ Flux Reconciliation Graph (dependency order):
 
 ### Infrastructure Provisioning (GitOps)
 
-1. **Flux bootstrap** connects the cluster to the GitHub fleet repo
-2. **All manifests** (K8sGPT operator, watcher, apps) are pushed to Git
+1. **Flux bootstrap** connects the cluster to this GitHub repo
+2. **All manifests** (K8sGPT operator, watcher, apps) are committed in Git
 3. **Flux reconciles** in dependency order:
    - `k8sgpt-operator` → HelmRelease installs the K8sGPT operator
    - `k8sgpt-config` → K8sGPT CR configures OpenAI backend
@@ -65,7 +65,7 @@ Flux Reconciliation Graph (dependency order):
 
 ### Auto-Remediation Loop
 
-1. **Broken app is deployed** via Flux from the fleet repo
+1. **Broken app is deployed** via Flux from the repo
 2. **K8sGPT Operator scans** the cluster every 2 minutes
 3. K8sGPT detects an issue and creates a **`Result` CRD** with:
    - Error details (CrashLoopBackOff, no endpoints, OOMKilled, etc.)
@@ -74,7 +74,7 @@ Flux Reconciliation Graph (dependency order):
 5. Watcher **gathers full context**: pod spec, logs, events, deployment YAML
 6. Watcher **calls OpenAI** with context + instructions
 7. OpenAI generates a **fixed manifest** + **PR description**
-8. Watcher **creates a GitHub PR** on the fleet repo with the fix
+8. Watcher **creates a GitHub PR** on the repo with the fix
 9. **Human reviews and approves** the PR (safety gate)
 10. PR is merged → **Flux reconciles** → broken app is healed
 
@@ -187,7 +187,7 @@ kubectl get pods -n demo-apps -w
 |----------|-------------|---------|
 | `GITHUB_TOKEN` | GitHub PAT with `repo` scope | (required) |
 | `GITHUB_USER` | GitHub username/org | (required) |
-| `GITHUB_REPO` | Fleet repo name | (required) |
+| `GITHUB_REPO` | GitHub repo name | (required) |
 | `GITHUB_BRANCH` | Target branch | `main` |
 | `OPENAI_API_KEY` | OpenAI API key | (required) |
 | `OPENAI_MODEL` | OpenAI model to use | `gpt-4o-mini` |
@@ -198,32 +198,39 @@ kubectl get pods -n demo-apps -w
 ## Project Structure
 
 ```
-k8sgpt-auto-heal-demo/
-├── setup.sh                    # Main entry point
-├── .env.example                # Config template
-├── kind-config.yaml            # Kind cluster definition
+k8sgpt-auto-heal/
+├── setup.sh                     # Main entry point
+├── .env.example                 # Config template
+├── kind-config.yaml             # Kind cluster definition
 │
 ├── scripts/
-│   ├── 01-create-cluster.sh    # Create Kind cluster
-│   ├── 02-bootstrap-flux.sh    # Bootstrap FluxCD + push manifests to Git
-│   ├── 03-create-secrets.sh    # Create K8s secrets (API keys)
-│   ├── 04-deploy-watcher.sh    # Build image / run watcher
-│   ├── 05-deploy-broken-apps.sh# Push broken apps to Git (Flux deploys)
-│   └── 06-teardown.sh          # Destroy everything
+│   ├── 01-create-cluster.sh     # Create Kind cluster
+│   ├── 02-bootstrap-flux.sh     # Render templates + bootstrap FluxCD
+│   ├── 03-create-secrets.sh     # Create K8s secrets (API keys)
+│   ├── 04-deploy-watcher.sh     # Build image / run watcher
+│   ├── 05-deploy-broken-apps.sh # Commit broken apps to Git (Flux deploys)
+│   └── 06-teardown.sh           # Destroy everything
 │
-├── flux/                        # Flux GitOps manifests (pushed to fleet repo)
-│   ├── clusters/                # Flux Kustomization resources
-│   │   ├── k8sgpt-operator.yaml # → infrastructure/k8sgpt-operator/
-│   │   ├── k8sgpt-config.yaml   # → infrastructure/k8sgpt-config/
-│   │   ├── watcher.yaml         # → infrastructure/watcher/
-│   │   └── apps.yaml            # → apps/k8sgpt-demo/
-│   ├── infrastructure/
-│   │   ├── k8sgpt-operator/     # HelmRepository + HelmRelease
-│   │   ├── k8sgpt-config/       # K8sGPT CR (OpenAI backend)
-│   │   └── watcher/             # Kustomize overlay for watcher
-│   └── apps/
-│       └── k8sgpt-demo/
-│           └── namespace.yaml   # demo-apps namespace
+├── clusters/
+│   └── k8sgpt-demo/             # Flux Kustomization resources
+│       ├── k8sgpt-operator.yaml # → infrastructure/k8sgpt-operator/
+│       ├── k8sgpt-config.yaml   # → infrastructure/k8sgpt-config/
+│       ├── watcher.yaml         # → infrastructure/watcher/
+│       └── apps.yaml            # → apps/k8sgpt-demo/
+│
+├── infrastructure/
+│   ├── k8sgpt-operator/         # HelmRepository + HelmRelease
+│   ├── k8sgpt-config/           # K8sGPT CR (OpenAI backend)
+│   │   ├── k8sgpt-instance.yaml.tpl  # Template (${OPENAI_MODEL})
+│   │   └── kustomization.yaml
+│   └── watcher/                 # Watcher deployment + RBAC
+│       ├── rbac.yaml
+│       ├── deployment.yaml
+│       └── kustomization.yaml
+│
+├── apps/
+│   └── k8sgpt-demo/
+│       └── namespace.yaml       # demo-apps namespace
 │
 ├── manifests/
 │   └── broken-apps/             # Intentionally broken K8s manifests
@@ -235,10 +242,7 @@ k8sgpt-auto-heal-demo/
 └── watcher/
     ├── watcher.py               # Main watcher controller
     ├── requirements.txt         # Python dependencies
-    ├── Dockerfile               # Container image
-    └── k8s-manifests/           # In-cluster deployment
-        ├── rbac.yaml            # ServiceAccount + ClusterRole
-        └── deployment.yaml      # Watcher Deployment
+    └── Dockerfile               # Container image
 ```
 
 ## How the Watcher Works

@@ -29,7 +29,41 @@ echo "→ Running Flux pre-flight checks..."
 flux check --pre
 
 # -----------------------------------------------------------------------
-# 2b. Bootstrap Flux with GitHub
+# 2b. Render templates (envsubst for model name)
+# -----------------------------------------------------------------------
+echo "→ Rendering K8sGPT config template (model: ${OPENAI_MODEL})..."
+export OPENAI_MODEL
+envsubst '${OPENAI_MODEL}' \
+  < "$ROOT_DIR/infrastructure/k8sgpt-config/k8sgpt-instance.yaml.tpl" \
+  > "$ROOT_DIR/infrastructure/k8sgpt-config/k8sgpt-instance.yaml"
+
+# -----------------------------------------------------------------------
+# 2c. Commit rendered manifests so Flux can reconcile them
+# -----------------------------------------------------------------------
+echo "→ Committing infrastructure manifests..."
+cd "$ROOT_DIR"
+git add \
+  clusters/ \
+  infrastructure/ \
+  apps/
+
+if git diff --cached --quiet; then
+  echo "  (no changes — manifests already committed)"
+else
+  git commit -m "feat: bootstrap GitOps infrastructure
+
+- K8sGPT operator via HelmRelease (Flux-managed)
+- K8sGPT config (OpenAI backend, ${OPENAI_MODEL})
+- Auto-heal watcher deployment + RBAC
+- Flux Kustomizations with dependency ordering:
+  k8sgpt-operator → k8sgpt-config → watcher → apps
+- Apps namespace (demo-apps)"
+fi
+
+git push origin "${GITHUB_BRANCH}"
+
+# -----------------------------------------------------------------------
+# 2d. Bootstrap Flux with GitHub (reentrant)
 # -----------------------------------------------------------------------
 echo "→ Bootstrapping Flux into cluster with GitHub repo '${GITHUB_USER}/${GITHUB_REPO}'..."
 flux bootstrap github \
@@ -47,81 +81,10 @@ flux check
 echo "→ Flux components:"
 kubectl -n flux-system get pods
 
-# -----------------------------------------------------------------------
-# 2c. Push all Flux manifests to the fleet repo
-# -----------------------------------------------------------------------
-echo ""
-echo "→ Pushing infrastructure manifests to fleet repo..."
-
-# Use an isolated temp dir per run — avoids stale state from previous runs
-REPO_DIR=$(mktemp -d "/tmp/fleet-${GITHUB_REPO}-XXXXXX")
-trap 'rm -rf "$REPO_DIR"' EXIT
-
-git clone --branch "${GITHUB_BRANCH}" --single-branch \
-  "https://${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${GITHUB_REPO}.git" "$REPO_DIR"
-cd "$REPO_DIR"
-
-# --- Cluster-level Flux Kustomizations (reconciliation graph) ---
-echo "→ Copying Flux Kustomization resources..."
-cp "$ROOT_DIR/flux/clusters/k8sgpt-operator.yaml" clusters/k8sgpt-demo/
-cp "$ROOT_DIR/flux/clusters/k8sgpt-config.yaml"   clusters/k8sgpt-demo/
-cp "$ROOT_DIR/flux/clusters/watcher.yaml"          clusters/k8sgpt-demo/
-cp "$ROOT_DIR/flux/clusters/apps.yaml"             clusters/k8sgpt-demo/
-
-# --- K8sGPT Operator infrastructure (HelmRepo + HelmRelease) ---
-echo "→ Copying K8sGPT operator manifests..."
-mkdir -p infrastructure/k8sgpt-operator
-cp "$ROOT_DIR/flux/infrastructure/k8sgpt-operator/kustomization.yaml"  infrastructure/k8sgpt-operator/
-cp "$ROOT_DIR/flux/infrastructure/k8sgpt-operator/namespace.yaml"      infrastructure/k8sgpt-operator/
-cp "$ROOT_DIR/flux/infrastructure/k8sgpt-operator/helmrepository.yaml" infrastructure/k8sgpt-operator/
-cp "$ROOT_DIR/flux/infrastructure/k8sgpt-operator/helmrelease.yaml"    infrastructure/k8sgpt-operator/
-
-# --- K8sGPT Config (K8sGPT CR instance) — requires envsubst for model name ---
-echo "→ Copying K8sGPT config manifests (model: ${OPENAI_MODEL})..."
-mkdir -p infrastructure/k8sgpt-config
-cp "$ROOT_DIR/flux/infrastructure/k8sgpt-config/kustomization.yaml" infrastructure/k8sgpt-config/
-export OPENAI_MODEL
-envsubst '${OPENAI_MODEL}' \
-  < "$ROOT_DIR/flux/infrastructure/k8sgpt-config/k8sgpt-instance.yaml" \
-  > infrastructure/k8sgpt-config/k8sgpt-instance.yaml
-
-# --- Watcher infrastructure (RBAC + Deployment) ---
-echo "→ Copying watcher manifests..."
-mkdir -p infrastructure/watcher
-cp "$ROOT_DIR/flux/infrastructure/watcher/kustomization.yaml" infrastructure/watcher/
-cp "$ROOT_DIR/watcher/k8s-manifests/rbac.yaml"                infrastructure/watcher/
-cp "$ROOT_DIR/watcher/k8s-manifests/deployment.yaml"           infrastructure/watcher/
-
-# --- Apps directory (namespace + placeholder) ---
-echo "→ Initializing apps directory..."
-mkdir -p apps/k8sgpt-demo
-cp "$ROOT_DIR/flux/apps/k8sgpt-demo/namespace.yaml" apps/k8sgpt-demo/
-
-# --- Commit and push ---
-git add .
-
-if git diff --cached --quiet; then
-  echo "  (no changes to push — fleet repo is up to date)"
-else
-  git commit -m "feat: bootstrap GitOps infrastructure
-
-- K8sGPT operator via HelmRelease (Flux-managed)
-- K8sGPT config (OpenAI backend, ${OPENAI_MODEL})
-- Auto-heal watcher deployment + RBAC
-- Flux Kustomizations with dependency ordering:
-  k8sgpt-operator → k8sgpt-config → watcher → apps
-- Apps namespace (demo-apps)"
-
-  git push origin "${GITHUB_BRANCH}"
-  echo "  ✅ Pushed all infrastructure manifests to fleet repo"
-fi
-
-cd "$ROOT_DIR"
-
 echo ""
 echo "✅ FluxCD bootstrapped with full GitOps infrastructure."
 echo ""
-echo "   Fleet repo:   https://github.com/${GITHUB_USER}/${GITHUB_REPO}"
+echo "   Repo:         https://github.com/${GITHUB_USER}/${GITHUB_REPO}"
 echo "   Cluster path: clusters/k8sgpt-demo"
 echo ""
 echo "   Flux will now reconcile the following in order:"

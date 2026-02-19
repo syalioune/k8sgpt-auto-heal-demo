@@ -89,7 +89,7 @@ case "$ACTION" in
     echo "  full      - Complete GitOps setup (cluster + flux + secrets)"
     echo "  cluster   - Create cluster + bootstrap flux + create secrets only"
     echo "  watcher   - Deploy the auto-heal watcher (add 'cluster' or 'local')"
-    echo "  break     - Push broken apps to fleet repo (add 'all|nginx|service|oom|image')"
+    echo "  break     - Commit broken apps to repo (add 'all|nginx|service|oom|image')"
     echo "  teardown  - Destroy everything"
     exit 1
     ;;
