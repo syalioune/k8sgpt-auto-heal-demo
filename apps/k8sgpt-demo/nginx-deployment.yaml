@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: '1'
+  creationTimestamp: '2026-02-19T23:22:45+00:00'
+  generation: 1
+  labels:
+    app: nginx-broken
+    kustomize.toolkit.fluxcd.io/name: apps
+    kustomize.toolkit.fluxcd.io/namespace: flux-system
+    scenario: readonly-filesystem
+  managedFields:
+  - apiVersion: apps/v1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:labels:
+          f:app: {}
+          f:kustomize.toolkit.fluxcd.io/name: {}
+          f:kustomize.toolkit.fluxcd.io/namespace: {}
+          f:scenario: {}
+      f:spec:
+        f:replicas: {}
+        f:selector: {}
+        f:strategy: {}
+        f:template:
+          f:metadata:
+            f:labels:
+              f:app: {}
+          f:spec:
+            f:containers:
+              k:{"name":"nginx"}:
+                .: {}
+                f:image: {}
+                f:name: {}
+                f:ports:
+                  k:{"containerPort":80,"protocol":"TCP"}:
+                    .: {}
+                    f:containerPort: {}
+                    f:protocol: {}
+                f:resources:
+                  f:limits:
+                    f:cpu: {}
+                    f:memory: {}
+                  f:requests:
+                    f:cpu: {}
+                    f:memory: {}
+                f:securityContext: {}
+                f:terminationMessagePath: /dev/termination-log
+                f:terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 300
+status:
+  conditions:
+  - lastTransitionTime: '2026-02-19T23:22:45+00:00'
+    lastUpdateTime: '2026-02-19T23:23:07+00:00'
+    message: ReplicaSet "nginx-broken-6468dc97ff" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: 'True'
+    type: Progressing
+  - lastTransitionTime: '2026-02-19T23:23:23+00:00'
+    lastUpdateTime: '2026-02-19T23:23:23+00:00'
+    message: Deployment does not have minimum availability.
+    reason: MinimumReplicasUnavailable
+    status: 'False'
+    type: Available
+  observedGeneration: 1
+  replicas: 2
+  terminatingReplicas: 0
+  unavailableReplicas: 2
+  updatedReplicas: 2
