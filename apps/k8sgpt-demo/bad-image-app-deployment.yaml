@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bad-image-app
+  namespace: demo-apps
+  labels:
+    app: bad-image-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bad-image-app
+  template:
+    metadata:
+      labels:
+        app: bad-image-app
+    spec:
+      containers:
+        - name: bad-image-container
+          image: <VALID_IMAGE_NAME>  # Replace with a valid image name
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "200m"
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+      # Security contexts and other configurations here, if applicable.
