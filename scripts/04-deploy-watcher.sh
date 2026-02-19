@@ -7,8 +7,7 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 source "$ROOT_DIR/.env"
 
 GITHUB_BRANCH="${GITHUB_BRANCH:-main}"
-ANTHROPIC_MODEL="${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}"
-REMEDIATION_MODE="${REMEDIATION_MODE:-api}"
+OPENAI_MODEL="${OPENAI_MODEL:-gpt-4o-mini}"
 
 MODE="${1:-cluster}"  # "local" or "cluster"
 
@@ -43,9 +42,8 @@ if [ "$MODE" = "local" ]; then
   export GITHUB_REPO="${GITHUB_USER}/${GITHUB_REPO}"
   export GITHUB_BRANCH="${GITHUB_BRANCH}"
   export FLEET_APPS_PATH="apps/k8sgpt-demo"
-  export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}"
-  export ANTHROPIC_MODEL="${ANTHROPIC_MODEL}"
-  export REMEDIATION_MODE="${REMEDIATION_MODE}"
+  export OPENAI_API_KEY="${OPENAI_API_KEY}"
+  export OPENAI_MODEL="${OPENAI_MODEL}"
   export GITHUB_TOKEN="${GITHUB_TOKEN}"
   export LOG_LEVEL="INFO"
   export DRY_RUN="${DRY_RUN:-false}"

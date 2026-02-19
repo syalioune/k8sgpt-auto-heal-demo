@@ -32,8 +32,6 @@ spec:
               value: "k8sgpt-operator-system"
             - name: FLEET_APPS_PATH
               value: "apps/k8sgpt-demo"
-            - name: REMEDIATION_MODE
-              value: "api"
             - name: LOG_LEVEL
               value: "INFO"
             - name: DRY_RUN

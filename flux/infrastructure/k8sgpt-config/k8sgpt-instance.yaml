@@ -1,18 +1,18 @@
 # K8sGPT instance — deployed after the operator is ready.
-# The ANTHROPIC_MODEL placeholder is replaced by envsubst during setup.
+# The OPENAI_MODEL placeholder is replaced by envsubst during setup.
 apiVersion: core.k8sgpt.ai/v1alpha1
 kind: K8sGPT
 metadata:
-  name: k8sgpt-anthropic
+  name: k8sgpt-openai
   namespace: k8sgpt-operator-system
 spec:
   ai:
     enabled: true
-    backend: anthropic
-    model: ${ANTHROPIC_MODEL}
+    backend: openai
+    model: ${OPENAI_MODEL}
     secret:
-      name: k8sgpt-anthropic-secret
-      key: anthropic-api-key
+      name: k8sgpt-openai-secret
+      key: openai-api-key
     anonymized: false
   noCache: false
   version: v0.4.25

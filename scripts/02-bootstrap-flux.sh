@@ -7,7 +7,7 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 source "$ROOT_DIR/.env"
 
 GITHUB_BRANCH="${GITHUB_BRANCH:-main}"
-ANTHROPIC_MODEL="${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}"
+OPENAI_MODEL="${OPENAI_MODEL:-gpt-4o-mini}"
 
 echo "============================================="
 echo " Step 2: Bootstrapping FluxCD (GitOps)"
@@ -53,16 +53,13 @@ kubectl -n flux-system get pods
 echo ""
 echo "→ Pushing infrastructure manifests to fleet repo..."
 
-REPO_DIR="/tmp/${GITHUB_REPO}"
+# Use an isolated temp dir per run — avoids stale state from previous runs
+REPO_DIR=$(mktemp -d "/tmp/fleet-${GITHUB_REPO}-XXXXXX")
+trap 'rm -rf "$REPO_DIR"' EXIT
 
-# Clone (or pull) the fleet repo
-if [ -d "$REPO_DIR" ]; then
-  cd "$REPO_DIR"
-  git pull --rebase origin "${GITHUB_BRANCH}" || true
-else
-  git clone "https://${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${GITHUB_REPO}.git" "$REPO_DIR"
-  cd "$REPO_DIR"
-fi
+git clone --branch "${GITHUB_BRANCH}" --single-branch \
+  "https://${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${GITHUB_REPO}.git" "$REPO_DIR"
+cd "$REPO_DIR"
 
 # --- Cluster-level Flux Kustomizations (reconciliation graph) ---
 echo "→ Copying Flux Kustomization resources..."
@@ -80,11 +77,11 @@ cp "$ROOT_DIR/flux/infrastructure/k8sgpt-operator/helmrepository.yaml" infrastru
 cp "$ROOT_DIR/flux/infrastructure/k8sgpt-operator/helmrelease.yaml"    infrastructure/k8sgpt-operator/
 
 # --- K8sGPT Config (K8sGPT CR instance) — requires envsubst for model name ---
-echo "→ Copying K8sGPT config manifests (model: ${ANTHROPIC_MODEL})..."
+echo "→ Copying K8sGPT config manifests (model: ${OPENAI_MODEL})..."
 mkdir -p infrastructure/k8sgpt-config
 cp "$ROOT_DIR/flux/infrastructure/k8sgpt-config/kustomization.yaml" infrastructure/k8sgpt-config/
-export ANTHROPIC_MODEL
-envsubst '${ANTHROPIC_MODEL}' \
+export OPENAI_MODEL
+envsubst '${OPENAI_MODEL}' \
   < "$ROOT_DIR/flux/infrastructure/k8sgpt-config/k8sgpt-instance.yaml" \
   > infrastructure/k8sgpt-config/k8sgpt-instance.yaml
 
@@ -109,7 +106,7 @@ else
   git commit -m "feat: bootstrap GitOps infrastructure
 
 - K8sGPT operator via HelmRelease (Flux-managed)
-- K8sGPT config (Anthropic backend, ${ANTHROPIC_MODEL})
+- K8sGPT config (OpenAI backend, ${OPENAI_MODEL})
 - Auto-heal watcher deployment + RBAC
 - Flux Kustomizations with dependency ordering:
   k8sgpt-operator → k8sgpt-config → watcher → apps
@@ -129,7 +126,7 @@ echo "   Cluster path: clusters/k8sgpt-demo"
 echo ""
 echo "   Flux will now reconcile the following in order:"
 echo "     1. k8sgpt-operator   → HelmRelease installs the K8sGPT operator"
-echo "     2. k8sgpt-config     → K8sGPT CR with Anthropic backend"
+echo "     2. k8sgpt-config     → K8sGPT CR with OpenAI backend"
 echo "     3. auto-heal-watcher → Watcher deployment + RBAC"
 echo "     4. apps              → Demo apps (currently empty)"
 echo ""

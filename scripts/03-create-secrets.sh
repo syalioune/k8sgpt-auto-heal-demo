@@ -7,8 +7,7 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 source "$ROOT_DIR/.env"
 
 GITHUB_BRANCH="${GITHUB_BRANCH:-main}"
-ANTHROPIC_MODEL="${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}"
-REMEDIATION_MODE="${REMEDIATION_MODE:-api}"
+OPENAI_MODEL="${OPENAI_MODEL:-gpt-4o-mini}"
 
 echo "============================================="
 echo " Step 3: Creating Secrets"
@@ -43,11 +42,11 @@ for ns in "$K8SGPT_NS" "$WATCHER_NS"; do
 done
 
 # -----------------------------------------------------------------------
-# 3b. K8sGPT Anthropic API secret
+# 3b. K8sGPT OpenAI API secret
 # -----------------------------------------------------------------------
-echo "→ Creating Anthropic API key secret for K8sGPT..."
-kubectl -n "$K8SGPT_NS" create secret generic k8sgpt-anthropic-secret \
-  --from-literal=anthropic-api-key="${ANTHROPIC_API_KEY}" \
+echo "→ Creating OpenAI API key secret for K8sGPT..."
+kubectl -n "$K8SGPT_NS" create secret generic k8sgpt-openai-secret \
+  --from-literal=openai-api-key="${OPENAI_API_KEY}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # -----------------------------------------------------------------------
@@ -58,8 +57,8 @@ kubectl -n "$WATCHER_NS" create secret generic auto-heal-secrets \
   --from-literal=GITHUB_TOKEN="${GITHUB_TOKEN}" \
   --from-literal=GITHUB_REPO="${GITHUB_USER}/${GITHUB_REPO}" \
   --from-literal=GITHUB_BRANCH="${GITHUB_BRANCH}" \
-  --from-literal=ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
-  --from-literal=ANTHROPIC_MODEL="${ANTHROPIC_MODEL}" \
+  --from-literal=OPENAI_API_KEY="${OPENAI_API_KEY}" \
+  --from-literal=OPENAI_MODEL="${OPENAI_MODEL}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # -----------------------------------------------------------------------

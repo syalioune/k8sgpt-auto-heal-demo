@@ -1,9 +1,9 @@
 # k8sgpt-auto-heal
 
-**GitOps-powered AI auto-healing for Kubernetes using K8sGPT + Claude + FluxCD**
+**GitOps-powered AI auto-healing for Kubernetes using K8sGPT + OpenAI + FluxCD**
 
 This demo sets up a local Kind cluster with a complete auto-remediation pipeline:
-K8sGPT detects issues → Claude generates fixes → PRs are created on GitHub → Flux reconciles after human approval.
+K8sGPT detects issues → OpenAI generates fixes → PRs are created on GitHub → Flux reconciles after human approval.
 
 ## Architecture
 
@@ -26,10 +26,10 @@ K8sGPT detects issues → Claude generates fixes → PRs are created on GitHub �
 │  │             │               │  (Python)       │              │
 │  │ • scans     │               │                 │              │
 │  │   every 2m  │               │ • watches       │              │
-│  │ • Anthropic │               │   Result CRDs   │              │
+│  │ • OpenAI   │               │   Result CRDs   │              │
 │  │   backend   │               │ • gathers k8s   │              │
 │  └────────────┘               │   context       │              │
-│        ▲                       │ • calls Claude  │              │
+│        ▲                       │ • calls OpenAI  │              │
 │        │                       │   for fix       │              │
 │  ┌─────┴──────┐               │ • creates PR    │              │
 │  │ Broken     │               └────────┬────────┘              │
@@ -58,7 +58,7 @@ Flux Reconciliation Graph (dependency order):
 2. **All manifests** (K8sGPT operator, watcher, apps) are pushed to Git
 3. **Flux reconciles** in dependency order:
    - `k8sgpt-operator` → HelmRelease installs the K8sGPT operator
-   - `k8sgpt-config` → K8sGPT CR configures Anthropic backend
+   - `k8sgpt-config` → K8sGPT CR configures OpenAI backend
    - `auto-heal-watcher` → Watcher deployment + RBAC
    - `apps` → Demo apps namespace + broken workloads
 4. **Secrets** (API keys) are the only resources created via `kubectl`
@@ -69,11 +69,11 @@ Flux Reconciliation Graph (dependency order):
 2. **K8sGPT Operator scans** the cluster every 2 minutes
 3. K8sGPT detects an issue and creates a **`Result` CRD** with:
    - Error details (CrashLoopBackOff, no endpoints, OOMKilled, etc.)
-   - AI explanation from Claude (via Anthropic backend)
+   - AI explanation from OpenAI
 4. **Auto-heal watcher** detects the new `Result` CRD
 5. Watcher **gathers full context**: pod spec, logs, events, deployment YAML
-6. Watcher **calls Claude** (API or Claude Code CLI) with context + instructions
-7. Claude generates a **fixed manifest** + **PR description**
+6. Watcher **calls OpenAI** with context + instructions
+7. OpenAI generates a **fixed manifest** + **PR description**
 8. Watcher **creates a GitHub PR** on the fleet repo with the fix
 9. **Human reviews and approves** the PR (safety gate)
 10. PR is merged → **Flux reconciles** → broken app is healed
@@ -92,10 +92,7 @@ Flux Reconciliation Graph (dependency order):
 
 **API Keys needed:**
 - **GitHub Personal Access Token** with `repo` scope
-- **Anthropic API Key** from https://console.anthropic.com
-
-**Optional (for Claude Code mode):**
-- Claude Code CLI: `npm install -g @anthropic-ai/claude-code`
+- **OpenAI API Key** from https://platform.openai.com/api-keys
 
 ## Quick Start
 
@@ -110,7 +107,7 @@ cp .env.example .env
 #   GITHUB_TOKEN=ghp_...
 #   GITHUB_USER=your-username
 #   GITHUB_REPO=k8sgpt-fleet-demo
-#   ANTHROPIC_API_KEY=sk-ant-...
+#   OPENAI_API_KEY=sk-...
 ```
 
 ### 2. Full setup (cluster + Flux + K8sGPT)
@@ -175,7 +172,7 @@ kubectl get pods -n demo-apps -w
 
 ## Demo Scenarios
 
-| Scenario | What's broken | What K8sGPT detects | What Claude fixes |
+| Scenario | What's broken | What K8sGPT detects | What OpenAI fixes |
 |----------|--------------|---------------------|-------------------|
 | `nginx` | `readOnlyRootFilesystem: true` | CrashLoopBackOff | Adds `emptyDir` volumes for `/var/cache/nginx` and `/var/run` |
 | `oom` | Memory limit 100Mi, app uses 200Mi | OOMKilled | Increases memory limit to 256Mi+ |
@@ -192,18 +189,11 @@ kubectl get pods -n demo-apps -w
 | `GITHUB_USER` | GitHub username/org | (required) |
 | `GITHUB_REPO` | Fleet repo name | (required) |
 | `GITHUB_BRANCH` | Target branch | `main` |
-| `ANTHROPIC_API_KEY` | Anthropic API key | (required) |
-| `ANTHROPIC_MODEL` | Claude model to use | `claude-sonnet-4-20250514` |
-| `REMEDIATION_MODE` | `api` or `claude-code` | `api` |
+| `OPENAI_API_KEY` | OpenAI API key | (required) |
+| `OPENAI_MODEL` | OpenAI model to use | `gpt-4o-mini` |
 | `DRY_RUN` | Set to `true` to skip PR creation | `false` |
 | `LOG_LEVEL` | Python log level | `INFO` |
 | `INSTALL_FLUX_MCP` | Install Flux MCP server | `false` |
-
-### Remediation Modes
-
-**`api` mode (default):** Calls the Anthropic Messages API directly. Simpler, faster, works everywhere.
-
-**`claude-code` mode:** Shells out to the Claude Code CLI (`claude`). Gives Claude access to tools (file I/O, kubectl) for richer analysis. Requires Claude Code installed in the container or on the host.
 
 ## Project Structure
 
@@ -229,7 +219,7 @@ k8sgpt-auto-heal-demo/
 │   │   └── apps.yaml            # → apps/k8sgpt-demo/
 │   ├── infrastructure/
 │   │   ├── k8sgpt-operator/     # HelmRepository + HelmRelease
-│   │   ├── k8sgpt-config/       # K8sGPT CR (Anthropic backend)
+│   │   ├── k8sgpt-config/       # K8sGPT CR (OpenAI backend)
 │   │   └── watcher/             # Kustomize overlay for watcher
 │   └── apps/
 │       └── k8sgpt-demo/
@@ -262,7 +252,7 @@ while True:
         if event is NEW or MODIFIED:
             # 1. Skip if already processed (check annotation)
             # 2. Gather context (pod spec, logs, events, deployment)
-            # 3. Call Claude with context → get fix manifest + PR description
+            # 3. Call OpenAI with context → get fix manifest + PR description
             # 4. Create GitHub PR with the fix
             # 5. Annotate Result CRD as "pr-created"
 ```
@@ -311,8 +301,8 @@ kubectl -n k8sgpt-operator-system logs -l app.kubernetes.io/name=k8sgpt --tail=5
 # Verify the K8sGPT instance
 kubectl -n k8sgpt-operator-system get k8sgpt -o yaml
 
-# Check the Anthropic secret
-kubectl -n k8sgpt-operator-system get secret k8sgpt-anthropic-secret
+# Check the OpenAI secret
+kubectl -n k8sgpt-operator-system get secret k8sgpt-openai-secret
 ```
 
 **Watcher not creating PRs:**

@@ -2,12 +2,12 @@
 """
 k8sgpt-auto-heal watcher
 
-Watches K8sGPT Result CRDs and triggers Claude-powered remediation PRs.
+Watches K8sGPT Result CRDs and triggers OpenAI-powered remediation PRs.
 
 Flow:
   1. Watch for new/updated Result CRDs in the K8sGPT namespace
   2. For each Result, gather context (pod spec, events, logs, deployment)
-  3. Call Claude API to generate a remediation patch
+  3. Call OpenAI API to generate a remediation patch
   4. Create a GitHub PR with the fix in the GitOps fleet repo
   5. Annotate the Result CR to track remediation state
 """
@@ -19,11 +19,10 @@ import time
 import yaml
 import logging
 import hashlib
-import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-import anthropic
+import openai
 from github import Github, GithubException
 from kubernetes import client, config, watch
 from kubernetes.client.rest import ApiException
@@ -38,9 +37,8 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_REPO = os.getenv("GITHUB_REPO")  # "owner/repo" format
 GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "main")
 FLEET_APPS_PATH = os.getenv("FLEET_APPS_PATH", "apps/k8sgpt-demo")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
-REMEDIATION_MODE = os.getenv("REMEDIATION_MODE", "api")  # "api" or "claude-code"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "4096"))
 DRY_RUN = os.getenv("DRY_RUN", "false").lower() == "true"
 
@@ -190,7 +188,7 @@ def annotate_result(custom_api, name, namespace, annotations):
 
 
 # ---------------------------------------------------------------------------
-# Claude remediation
+# OpenAI remediation
 # ---------------------------------------------------------------------------
 
 SYSTEM_PROMPT = """\
@@ -226,8 +224,8 @@ OUTPUT FORMAT (use these exact markers):
 
 
 def generate_remediation_via_api(result_details, k8s_context):
-    """Call Claude API directly to generate remediation."""
-    claude = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    """Call OpenAI API to generate remediation."""
+    oai = openai.OpenAI(api_key=OPENAI_API_KEY)
 
     user_message = f"""
 ## K8sGPT Diagnostic Result
@@ -281,89 +279,22 @@ def generate_remediation_via_api(result_details, k8s_context):
 Please generate the fix.
 """
 
-    logger.info(f"Calling Claude API ({ANTHROPIC_MODEL}) for remediation...")
+    logger.info(f"Calling OpenAI API ({OPENAI_MODEL}) for remediation...")
 
-    response = claude.messages.create(
-        model=ANTHROPIC_MODEL,
+    response = oai.chat.completions.create(
+        model=OPENAI_MODEL,
         max_tokens=MAX_TOKENS,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_message}],
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_message},
+        ],
     )
 
-    return response.content[0].text
-
-
-def generate_remediation_via_claude_code(result_details, k8s_context):
-    """Shell out to Claude Code CLI to generate remediation."""
-
-    # Write context to a temp file for Claude Code to read
-    context_path = "/tmp/k8sgpt-context.json"
-    with open(context_path, "w") as f:
-        json.dump(
-            {
-                "result": result_details.get("spec", {}),
-                "cluster_context": k8s_context,
-                "fleet_apps_path": FLEET_APPS_PATH,
-            },
-            f,
-            indent=2,
-        )
-
-    prompt = f"""Read the K8sGPT diagnostic context from {context_path}.
-
-Analyze the Kubernetes issue and generate a fix.
-
-Output format (use these exact markers):
----PR_TITLE---
-<one-line PR title>
----PR_DESCRIPTION---
-<markdown description>
----MANIFEST_PATH---
-<path under {FLEET_APPS_PATH}/>
----MANIFEST---
-<complete fixed YAML>
-
-Use the tools available to you:
-- Read the context file
-- If needed, run kubectl commands to gather more info
-- Generate the fix manifest
-
-{SYSTEM_PROMPT}
-"""
-
-    logger.info("Calling Claude Code CLI for remediation...")
-
-    try:
-        result = subprocess.run(
-            [
-                "claude",
-                "--print",
-                "--dangerously-skip-permissions",
-                "--model", ANTHROPIC_MODEL,
-                "-p", prompt,
-            ],
-            capture_output=True,
-            text=True,
-            timeout=120,
-            env={
-                **os.environ,
-                "ANTHROPIC_API_KEY": ANTHROPIC_API_KEY,
-            },
-        )
-        if result.returncode != 0:
-            logger.error(f"Claude Code failed: {result.stderr}")
-            return None
-        return result.stdout
-    except FileNotFoundError:
-        logger.error("Claude Code CLI not found. Install: npm install -g @anthropic-ai/claude-code")
-        return None
-    except subprocess.TimeoutExpired:
-        logger.error("Claude Code timed out after 120s")
-        return None
+    return response.choices[0].message.content
 
 
 def parse_remediation_response(response_text):
-    """Parse the structured output from Claude."""
+    """Parse the structured output from OpenAI."""
     sections = {}
     current_section = None
     current_content = []
@@ -399,7 +330,7 @@ def create_remediation_pr(sections, result_name):
     manifest_content = sections.get("MANIFEST", "")
 
     if not manifest_content:
-        logger.error("No manifest content in Claude response — skipping PR creation.")
+        logger.error("No manifest content in OpenAI response — skipping PR creation.")
         return None
 
     # Validate YAML
@@ -416,12 +347,12 @@ def create_remediation_pr(sections, result_name):
     # Enrich PR body with metadata
     pr_body_full = f"""## 🤖 Auto-Remediation PR
 
-> Generated by **k8sgpt-auto-heal** watcher using Claude ({ANTHROPIC_MODEL})
+> Generated by **k8sgpt-auto-heal** watcher using OpenAI ({OPENAI_MODEL})
 
 ### Source
 - **K8sGPT Result:** `{result_name}`
 - **Timestamp:** {datetime.now(timezone.utc).isoformat()}
-- **Mode:** {'Claude Code CLI' if REMEDIATION_MODE == 'claude-code' else 'Anthropic API'}
+- **Mode:** OpenAI API
 
 ---
 
@@ -536,23 +467,20 @@ def process_result(custom_api, core_api, apps_api, result):
     else:
         logger.info(f"  Resource kind '{resource_kind}' — gathering basic context")
 
-    # Generate remediation
-    if REMEDIATION_MODE == "claude-code":
-        response_text = generate_remediation_via_claude_code(result, k8s_context)
-    else:
-        response_text = generate_remediation_via_api(result, k8s_context)
+    # Generate remediation via OpenAI API
+    response_text = generate_remediation_via_api(result, k8s_context)
 
     if not response_text:
         annotate_result(custom_api, name, namespace, {ANNOTATION_REMEDIATION: "failed"})
         return
 
-    logger.debug(f"Claude response:\n{response_text}")
+    logger.debug(f"OpenAI response:\n{response_text}")
 
     # Parse the structured response
     sections = parse_remediation_response(response_text)
 
     if not sections.get("MANIFEST"):
-        logger.warning(f"  No MANIFEST section found in Claude response for {name}")
+        logger.warning(f"  No MANIFEST section found in OpenAI response for {name}")
         annotate_result(custom_api, name, namespace, {ANNOTATION_REMEDIATION: "failed"})
         return
 
@@ -590,8 +518,7 @@ def run_watcher():
     logger.info("=" * 60)
     logger.info("k8sgpt-auto-heal watcher started")
     logger.info(f"  Namespace:  {K8SGPT_NAMESPACE}")
-    logger.info(f"  Model:      {ANTHROPIC_MODEL}")
-    logger.info(f"  Mode:       {REMEDIATION_MODE}")
+    logger.info(f"  Model:      {OPENAI_MODEL}")
     logger.info(f"  Fleet repo: {GITHUB_REPO}")
     logger.info(f"  Fleet path: {FLEET_APPS_PATH}")
     logger.info(f"  Dry run:    {DRY_RUN}")
@@ -665,8 +592,8 @@ if __name__ == "__main__":
         missing.append("GITHUB_TOKEN")
     if not GITHUB_REPO:
         missing.append("GITHUB_REPO")
-    if not ANTHROPIC_API_KEY:
-        missing.append("ANTHROPIC_API_KEY")
+    if not OPENAI_API_KEY:
+        missing.append("OPENAI_API_KEY")
 
     if missing:
         logger.error(f"Missing required environment variables: {', '.join(missing)}")

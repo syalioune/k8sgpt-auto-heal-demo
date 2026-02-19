@@ -9,6 +9,7 @@ echo "→ Deleting Kind cluster 'k8sgpt-demo'..."
 kind delete cluster --name k8sgpt-demo 2>/dev/null || true
 
 echo "→ Cleaning up temp files..."
+rm -rf /tmp/fleet-*
 rm -rf /tmp/k8sgpt-context.json
 rm -rf /tmp/apps-kustomization.yaml
 

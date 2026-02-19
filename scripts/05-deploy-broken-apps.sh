@@ -21,6 +21,13 @@ echo "  Flux reconciles them into the cluster."
 echo "  NO direct kubectl apply — pure GitOps."
 echo ""
 
+# Use an isolated temp dir per run — avoids stale state from previous runs
+REPO_DIR=$(mktemp -d "/tmp/fleet-${GITHUB_REPO}-XXXXXX")
+trap 'rm -rf "$REPO_DIR"' EXIT
+
+git clone --branch "${GITHUB_BRANCH}" --single-branch \
+  "https://${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${GITHUB_REPO}.git" "$REPO_DIR"
+
 push_to_fleet() {
   local file="$1"
   local name
@@ -28,13 +35,7 @@ push_to_fleet() {
 
   echo "→ Pushing ${name} to fleet repo (apps/k8sgpt-demo/)..."
 
-  local repo_dir="/tmp/${GITHUB_REPO}"
-
-  if [ ! -d "$repo_dir" ]; then
-    git clone "https://${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${GITHUB_REPO}.git" "$repo_dir"
-  fi
-
-  cd "$repo_dir"
+  cd "$REPO_DIR"
   git pull --rebase origin "${GITHUB_BRANCH}" || true
 
   mkdir -p "apps/k8sgpt-demo"

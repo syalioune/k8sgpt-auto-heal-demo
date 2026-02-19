@@ -10,3 +10,9 @@ build/
 .vscode/
 *.swp
 *.swo
+
+# Fleet repo artifacts — these belong in the remote fleet repo, not here.
+# They get created locally when the setup scripts clone + push to the fleet repo.
+/apps/
+/infrastructure/
+/clusters/

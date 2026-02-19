@@ -12,14 +12,14 @@ echo ""
 if [ ! -f "$ROOT_DIR/.env" ]; then
   echo "ERROR: .env file not found."
   echo "  cp .env.example .env"
-  echo "  # Then fill in your GITHUB_TOKEN, ANTHROPIC_API_KEY, etc."
+  echo "  # Then fill in your GITHUB_TOKEN, OPENAI_API_KEY, etc."
   exit 1
 fi
 
 source "$ROOT_DIR/.env"
 
 # Validate required vars
-for var in GITHUB_TOKEN GITHUB_USER GITHUB_REPO ANTHROPIC_API_KEY; do
+for var in GITHUB_TOKEN GITHUB_USER GITHUB_REPO OPENAI_API_KEY; do
   if [ -z "${!var:-}" ]; then
     echo "ERROR: ${var} is not set in .env"
     exit 1
