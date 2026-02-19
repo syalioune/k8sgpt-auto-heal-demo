@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8sgpt-demo
+  namespace: k8sgpt-operator-system
+  labels:
+    app: k8sgpt-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8sgpt-demo
+  template:
+    metadata:
+      labels:
+        app: k8sgpt-demo
+    spec:
+      containers:
+      - name: k8sgpt-demo
+        image: your-image:latest
+        volumeMounts:
+        - name: kube-root-ca
+          mountPath: /etc/ssl/certs/kube-root-ca.crt
+          subPath: kube-root-ca.crt
+      volumes:
+      - name: kube-root-ca
+        configMap:
+          name: kube-root-ca.crt
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
+        readOnlyRootFilesystem: true
+      # Add any other existing settings like resource limits if applicable
+      # resourceLimits:
+      #   limits:
+      #     cpu: "500m"
+      #     memory: "256Mi"
