@@ -10,6 +10,3 @@ build/
 .vscode/
 *.swp
 *.swo
-
-# Rendered from .tpl template by envsubst (contains actual model name)
-infrastructure/k8sgpt-config/k8sgpt-instance.yaml
