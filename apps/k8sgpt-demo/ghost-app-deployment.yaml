@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ghost-app
+  namespace: demo-apps
+  labels:
+    app: ghost-app-that-does-not-exist
+    kustomize.toolkit.fluxcd.io/name: apps
+    kustomize.toolkit.fluxcd.io/namespace: flux-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ghost-app-that-does-not-exist
+  template:
+    metadata:
+      labels:
+        app: ghost-app-that-does-not-exist
+        kustomize.toolkit.fluxcd.io/name: apps
+        kustomize.toolkit.fluxcd.io/namespace: flux-system
+    spec:
+      containers:
+      - name: ghost
+        image: ghost:latest
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+        env:
+        - name: GHOST_ENV
+          value: production
+      imagePullSecrets:
+      - name: myregistrykey
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 3000
+      restartPolicy: Always
