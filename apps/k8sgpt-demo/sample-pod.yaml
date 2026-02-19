@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-pod
+  namespace: kube-node-lease
+  labels:
+    app: sample-app
+spec:
+  containers:
+  - name: sample-container
+    image: your-image:latest
+    volumeMounts:
+    - name: ca-certificate
+      mountPath: /etc/ssl/certs/kube-root-ca.crt
+      subPath: kube-root-ca.crt
+  volumes:
+  - name: ca-certificate
+    configMap:
+      name: kube-root-ca.crt
+      items:
+      - key: kube-root-ca.crt
+        path: kube-root-ca.crt
+  restartPolicy: Always
