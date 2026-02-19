@@ -1,0 +1,18 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: auto-heal-watcher
+  namespace: flux-system
+spec:
+  interval: 5m
+  retryInterval: 1m
+  dependsOn:
+    - name: k8sgpt-operator
+  path: ./infrastructure/watcher
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: true
+  timeout: 5m

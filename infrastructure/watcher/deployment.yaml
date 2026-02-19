@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auto-heal-watcher
+  namespace: k8sgpt-auto-heal
+  labels:
+    app: auto-heal-watcher
+    app.kubernetes.io/part-of: k8sgpt-auto-heal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auto-heal-watcher
+  template:
+    metadata:
+      labels:
+        app: auto-heal-watcher
+    spec:
+      serviceAccountName: auto-heal-watcher
+      containers:
+        - name: watcher
+          # For local dev: build and load into Kind
+          #   docker build -t auto-heal-watcher:local ./watcher
+          #   kind load docker-image auto-heal-watcher:local --name k8sgpt-demo
+          image: auto-heal-watcher:local
+          imagePullPolicy: Never
+          envFrom:
+            - secretRef:
+                name: auto-heal-secrets
+          env:
+            - name: K8SGPT_NAMESPACE
+              value: "k8sgpt-operator-system"
+            - name: FLEET_APPS_PATH
+              value: "apps/k8sgpt-demo"
+            - name: REMEDIATION_MODE
+              value: "api"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: DRY_RUN
+              value: "false"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            readOnlyRootFilesystem: false  # needed for /tmp context files
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
