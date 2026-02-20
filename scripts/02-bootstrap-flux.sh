@@ -26,7 +26,7 @@ flux --version
 
 # Pre-flight check
 echo "→ Running Flux pre-flight checks..."
-flux check --pre
+flux check --pre --timeout=5m
 
 # -----------------------------------------------------------------------
 # 2b. Render templates (envsubst for model name)
@@ -72,11 +72,12 @@ flux bootstrap github \
   --branch="${GITHUB_BRANCH}" \
   --path=clusters/k8sgpt-demo \
   --personal \
-  --token-auth
+  --token-auth \
+  --timeout=10m
 
 # Wait for Flux to be ready
 echo "→ Waiting for Flux controllers to be ready..."
-flux check
+flux check --timeout=5m
 
 echo "→ Flux components:"
 kubectl -n flux-system get pods

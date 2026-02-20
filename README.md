@@ -193,7 +193,6 @@ kubectl get pods -n demo-apps -w
 | `OPENAI_MODEL` | OpenAI model to use | `gpt-4o-mini` |
 | `DRY_RUN` | Set to `true` to skip PR creation | `false` |
 | `LOG_LEVEL` | Python log level | `INFO` |
-| `INSTALL_FLUX_MCP` | Install Flux MCP server | `false` |
 
 ## Project Structure
 
@@ -209,7 +208,8 @@ k8sgpt-auto-heal/
 │   ├── 03-create-secrets.sh     # Create K8s secrets (API keys)
 │   ├── 04-deploy-watcher.sh     # Build image / run watcher
 │   ├── 05-deploy-broken-apps.sh # Commit broken apps to Git (Flux deploys)
-│   └── 06-teardown.sh           # Destroy everything
+│   ├── 06-teardown.sh           # Destroy everything
+
 │
 ├── clusters/
 │   └── k8sgpt-demo/             # Flux Kustomization resources
@@ -240,7 +240,11 @@ k8sgpt-auto-heal/
 │       └── bad-image.yaml       # ImagePullBackOff scenario
 │
 └── watcher/
-    ├── watcher.py               # Main watcher controller
+    ├── watcher.py               # Main watch loop & entry point
+    ├── config.py                # Environment variables & logging
+    ├── k8s_helpers.py           # Kubernetes client & context gathering
+    ├── remediation.py           # OpenAI prompt, API call, response parsing
+    ├── github_pr.py             # GitHub PR creation
     ├── requirements.txt         # Python dependencies
     └── Dockerfile               # Container image
 ```
@@ -273,27 +277,6 @@ while True:
 - PRs require **human approval** before Flux reconciles
 - Sensitive data (pod names, namespaces) can be anonymized via K8sGPT's `anonymized: true`
 - For production: use a self-hosted LLM (LocalAI/Ollama) to keep data in-cluster
-
-## Flux MCP Server (Optional)
-
-The [Flux MCP Server](https://fluxcd.io/blog/2025/05/ai-assisted-gitops/) is an MCP bridge
-that lets AI assistants interact with your Flux installation via natural language. It's useful
-for interactive debugging but not required for the automated pipeline.
-
-If you want to experiment with it:
-
-```bash
-# Install the Flux Operator (includes MCP server)
-helm install flux-operator oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator \
-  --namespace flux-system
-
-# The MCP server is then available for Claude Desktop, Cursor, etc.
-# See: https://github.com/controlplaneio-fluxcd/flux-operator
-```
-
-For this demo, the Flux MCP server is **not in the critical path** — the watcher
-communicates directly with the GitHub API and Flux reconciles via its standard
-Git source controller.
 
 ## Troubleshooting
 

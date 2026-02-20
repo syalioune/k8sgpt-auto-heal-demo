@@ -29,7 +29,7 @@ if [ "$MODE" = "local" ]; then
   echo ""
 
   # Suspend the in-cluster watcher Flux kustomization
-  flux suspend kustomization auto-heal-watcher 2>/dev/null || true
+  flux suspend kustomization auto-heal-watcher --timeout=2m 2>/dev/null || true
 
   # Install Python deps
   echo "→ Installing Python dependencies..."
@@ -56,7 +56,7 @@ elif [ "$MODE" = "cluster" ]; then
   # -----------------------------------------------------------------------
 
   # Resume the Flux kustomization in case it was suspended
-  flux resume kustomization auto-heal-watcher 2>/dev/null || true
+  flux resume kustomization auto-heal-watcher --timeout=2m 2>/dev/null || true
 
   echo "→ Building watcher container image..."
   docker build -t auto-heal-watcher:local "$ROOT_DIR/watcher"
@@ -65,7 +65,7 @@ elif [ "$MODE" = "cluster" ]; then
   kind load docker-image auto-heal-watcher:local --name k8sgpt-demo
 
   echo "→ Triggering Flux reconciliation for watcher..."
-  flux reconcile kustomization auto-heal-watcher 2>/dev/null || true
+  flux reconcile kustomization auto-heal-watcher --timeout=5m 2>/dev/null || true
 
   echo "→ Waiting for watcher deployment to be ready..."
   kubectl -n k8sgpt-auto-heal wait --for=condition=available deployment/auto-heal-watcher \

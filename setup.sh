@@ -46,6 +46,7 @@ case "$ACTION" in
     echo " GitOps Setup complete!"
     echo "============================================="
     echo ""
+
     echo " Everything is managed by Flux. Next steps:"
     echo ""
     echo " 1. Deploy the watcher (choose one):"
