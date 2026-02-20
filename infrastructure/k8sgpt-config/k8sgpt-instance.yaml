@@ -18,7 +18,16 @@ spec:
   version: v0.4.25
   repository: ghcr.io/k8sgpt-ai/k8sgpt
   # Filter which resource types K8sGPT should analyze
-  filters: []
+  filters:
+    - Pod
+    - Service
+    - Deployment
+    - ReplicaSet
+    - PersistentVolumeClaim
+    - Ingress
+    - StatefulSet
+    - CronJob
+    - Node
   # Scan every 2 minutes for the demo (production: 5-10m)
   analysis:
     interval: 2m
