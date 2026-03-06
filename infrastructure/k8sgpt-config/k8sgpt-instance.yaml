@@ -15,7 +15,7 @@ spec:
       key: openai-api-key
     anonymized: false
   noCache: false
-  version: v0.4.25
+  version: v0.4.26
   repository: ghcr.io/k8sgpt-ai/k8sgpt
   # Filter which resource types K8sGPT should analyze
   filters:
