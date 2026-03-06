@@ -65,7 +65,7 @@ elif [ "$MODE" = "cluster" ]; then
   kind load docker-image auto-heal-watcher:local --name k8sgpt-demo
 
   echo "→ Triggering Flux reconciliation for watcher..."
-  flux reconcile kustomization auto-heal-watcher --timeout=5m 2>/dev/null || true
+  flux reconcile kustomization auto-heal-watcher --timeout=1m 2>/dev/null || true
 
   echo "→ Waiting for watcher deployment to be ready..."
   kubectl -n k8sgpt-auto-heal wait --for=condition=available deployment/auto-heal-watcher \

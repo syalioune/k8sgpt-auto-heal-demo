@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 source "$ROOT_DIR/.env"
+export GITHUB_TOKEN
 
 GITHUB_BRANCH="${GITHUB_BRANCH:-main}"
 OPENAI_MODEL="${OPENAI_MODEL:-gpt-4o-mini}"

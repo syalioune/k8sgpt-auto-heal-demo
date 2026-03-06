@@ -71,9 +71,9 @@ fi
 # Trigger Flux reconciliation immediately instead of waiting
 echo ""
 echo "→ Triggering Flux reconciliation..."
-flux reconcile source git flux-system --timeout=5m 2>/dev/null || true
+flux reconcile source git flux-system --timeout=1m 2>/dev/null || true
 sleep 2
-flux reconcile kustomization apps --timeout=5m 2>/dev/null || true
+flux reconcile kustomization apps --timeout=1m 2>/dev/null || true
 
 echo ""
 echo "→ Waiting for Flux to deploy apps..."

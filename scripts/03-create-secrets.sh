@@ -65,11 +65,10 @@ kubectl -n "$WATCHER_NS" create secret generic auto-heal-secrets \
 # 3d. Trigger Flux reconciliation so it picks up the secrets
 # -----------------------------------------------------------------------
 echo "→ Triggering Flux reconciliation..."
-flux reconcile source git flux-system 2>/dev/null || true
+flux reconcile source git flux-system --timeout=1m 2>/dev/null || true
 sleep 2
-flux reconcile kustomization k8sgpt-operator 2>/dev/null || true
-flux reconcile kustomization k8sgpt-config 2>/dev/null || true
-flux reconcile kustomization auto-heal-watcher 2>/dev/null || true
+flux reconcile kustomization k8sgpt-operator --timeout=1m 2>/dev/null || true
+flux reconcile kustomization k8sgpt-config --timeout=1m 2>/dev/null || true
 
 echo ""
 echo "→ Waiting for K8sGPT operator to be ready..."
