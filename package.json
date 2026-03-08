@@ -1,0 +1,12 @@
+{
+  "name": "k8sgpt-auto-heal-demo",
+  "private": true,
+  "scripts": {
+    "slides:dev": "reveal-md presentation/slides.md --css presentation/custom.css -w --disable-auto-open",
+    "slides:build": "reveal-md presentation/slides.md --static docs/ --css presentation/custom.css && mkdir -p docs/mermaid/dist && cp node_modules/mermaid/dist/mermaid.min.js docs/mermaid/dist/"
+  },
+  "devDependencies": {
+    "mermaid": "^11.12.3",
+    "reveal-md": "^6.1.4"
+  }
+}

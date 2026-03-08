@@ -1,0 +1,92 @@
+:root {
+  --r-heading-color: #6d28d9;
+  --r-link-color: #7c3aed;
+  --r-link-color-hover: #5b21b6;
+  --r-background-color: #fafafa;
+  --r-main-color: #1e293b;
+  --r-heading-font: 'Source Sans Pro', Helvetica, sans-serif;
+}
+.reveal { font-size: 28px; }
+.reveal h1 { font-size: 1.8em; }
+.reveal h2 { font-size: 1.3em; }
+.reveal h3 { font-size: 1.05em; }
+.reveal p { font-size: 0.85em; line-height: 1.5; }
+.reveal li { font-size: 0.85em; line-height: 1.5; }
+.reveal pre { width: 100%; font-size: 0.48em; }
+.reveal pre code { max-height: 480px; padding: 12px; }
+.reveal code { color: #9333ea; }
+.reveal .small { font-size: 0.55em; }
+.reveal .medium { font-size: 0.7em; }
+.reveal table { font-size: 0.55em; margin: 0 auto; }
+.reveal table th { background: #6d28d9; color: #fff; }
+.reveal table td, .reveal table th { border: 1px solid #e2e8f0; padding: 6px 10px; }
+.reveal table tbody tr:nth-child(even) { background: #f1f5f9; }
+.reveal .highlight-purple { color: #7c3aed; }
+.reveal .highlight-violet { color: #8b5cf6; }
+.reveal .highlight-green { color: #059669; }
+.reveal .highlight-orange { color: #d97706; }
+.reveal .highlight-red { color: #dc2626; }
+.reveal .highlight-indigo { color: #4f46e5; }
+.reveal .box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #7c3aed;
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin: 8px 0;
+  text-align: left;
+}
+.reveal .box h3 { margin-top: 0; }
+.reveal .flow-arrow { color: #7c3aed; font-size: 1.3em; }
+.reveal .columns { display: flex; gap: 14px; }
+.reveal .columns > * { flex: 1; }
+.reveal section img {
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+.reveal .cmd-box {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-left: 3px solid #7c3aed;
+  padding: 8px 12px;
+  margin: 6px 0;
+  text-align: left;
+  font-family: monospace;
+  font-size: 0.52em;
+  border-radius: 0 4px 4px 0;
+}
+.reveal .cmd-box code { color: #c4b5fd; }
+.reveal .step-number {
+  display: inline-block;
+  background: #7c3aed;
+  color: #fff;
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
+  border-radius: 50%;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.8em;
+  margin-right: 8px;
+}
+.reveal .step-number-sm {
+  display: inline-block;
+  background: #7c3aed;
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  border-radius: 50%;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.65em;
+  margin-right: 6px;
+}
+.reveal .agenda-item {
+  text-align: left;
+  padding: 6px 0;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.8em;
+}
+.reveal .muted { color: #64748b; }

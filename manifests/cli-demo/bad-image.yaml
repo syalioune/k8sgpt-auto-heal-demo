@@ -1,0 +1,31 @@
+# Intentionally broken: image tag doesn't exist -> ImagePullBackOff
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bad-image-app
+  namespace: k8sgpt-cli-demo
+  labels:
+    app: bad-image-app
+    scenario: image-pull-backoff
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bad-image-app
+  template:
+    metadata:
+      labels:
+        app: bad-image-app
+    spec:
+      containers:
+        - name: app
+          image: nginx:99.99.99-nonexistent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

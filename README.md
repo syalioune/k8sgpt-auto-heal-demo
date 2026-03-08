@@ -194,6 +194,23 @@ kubectl get pods -n demo-apps -w
 | `DRY_RUN` | Set to `true` to skip PR creation | `false` |
 | `LOG_LEVEL` | Python log level | `INFO` |
 
+## Presentation
+
+The project includes a [reveal.js](https://revealjs.com/) presentation built with [reveal-md](https://github.com/webpro/reveal-md). Source files are in `presentation/`, and the static HTML is generated into `docs/` for GitHub Pages deployment.
+
+```bash
+# Install dependencies (first time only)
+npm install
+
+# Live-reload dev server (http://localhost:1948)
+npm run slides:dev
+
+# Build static HTML for GitHub Pages
+npm run slides:build
+```
+
+The GitHub Actions workflow (`.github/workflows/pages.yml`) automatically builds and deploys the presentation on push to `main`.
+
 ## Project Structure
 
 ```
@@ -201,6 +218,11 @@ k8sgpt-auto-heal/
 ├── setup.sh                     # Main entry point
 ├── .env.example                 # Config template
 ├── kind-config.yaml             # Kind cluster definition
+├── package.json                 # reveal-md build config
+│
+├── presentation/                # Slide source (reveal-md)
+│   ├── slides.md                # All slides in Markdown
+│   └── custom.css               # Custom theme (purple palette)
 │
 ├── scripts/
 │   ├── 01-create-cluster.sh     # Create Kind cluster
@@ -208,8 +230,7 @@ k8sgpt-auto-heal/
 │   ├── 03-create-secrets.sh     # Create K8s secrets (API keys)
 │   ├── 04-deploy-watcher.sh     # Build image / run watcher
 │   ├── 05-deploy-broken-apps.sh # Commit broken apps to Git (Flux deploys)
-│   ├── 06-teardown.sh           # Destroy everything
-
+│   └── 06-teardown.sh           # Destroy everything
 │
 ├── clusters/
 │   └── k8sgpt-demo/             # Flux Kustomization resources
@@ -233,20 +254,23 @@ k8sgpt-auto-heal/
 │       └── namespace.yaml       # demo-apps namespace
 │
 ├── manifests/
-│   └── broken-apps/             # Intentionally broken K8s manifests
-│       ├── nginx-readonly.yaml  # CrashLoopBackOff scenario
-│       ├── memory-hog.yaml      # OOMKilled scenario
-│       ├── service-no-endpoints.yaml
-│       └── bad-image.yaml       # ImagePullBackOff scenario
+│   ├── broken-apps/             # Intentionally broken K8s manifests
+│   │   ├── nginx-readonly.yaml  # CrashLoopBackOff scenario
+│   │   ├── memory-hog.yaml      # OOMKilled scenario
+│   │   ├── service-no-endpoints.yaml
+│   │   └── bad-image.yaml       # ImagePullBackOff scenario
+│   └── cli-demo/                # K8sGPT CLI demo apps (non-Flux)
 │
-└── watcher/
-    ├── watcher.py               # Main watch loop & entry point
-    ├── config.py                # Environment variables & logging
-    ├── k8s_helpers.py           # Kubernetes client & context gathering
-    ├── remediation.py           # OpenAI prompt, API call, response parsing
-    ├── github_pr.py             # GitHub PR creation
-    ├── requirements.txt         # Python dependencies
-    └── Dockerfile               # Container image
+├── watcher/
+│   ├── watcher.py               # Main watch loop & entry point
+│   ├── config.py                # Environment variables & logging
+│   ├── k8s_helpers.py           # Kubernetes client & context gathering
+│   ├── remediation.py           # OpenAI prompt, API call, response parsing
+│   ├── github_pr.py             # GitHub PR creation
+│   ├── requirements.txt         # Python dependencies
+│   └── Dockerfile               # Container image
+│
+└── docs/                        # Generated (gitignored) — GitHub Pages output
 ```
 
 ## How the Watcher Works

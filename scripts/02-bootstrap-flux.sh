@@ -30,7 +30,13 @@ echo "→ Running Flux pre-flight checks..."
 flux check --pre --timeout=5m
 
 # -----------------------------------------------------------------------
-# 2b. Render templates (envsubst for model name)
+# 2b. Clean up broken-app manifests from prior demo runs
+# -----------------------------------------------------------------------
+echo "→ Cleaning up apps from previous demo runs..."
+find "$ROOT_DIR/apps/k8sgpt-demo" -name '*.yaml' ! -name 'namespace.yaml' -delete 2>/dev/null || true
+
+# -----------------------------------------------------------------------
+# 2c. Render templates (envsubst for model name)
 # -----------------------------------------------------------------------
 echo "→ Rendering K8sGPT config template (model: ${OPENAI_MODEL})..."
 export OPENAI_MODEL
@@ -39,7 +45,7 @@ envsubst '${OPENAI_MODEL}' \
   > "$ROOT_DIR/infrastructure/k8sgpt-config/k8sgpt-instance.yaml"
 
 # -----------------------------------------------------------------------
-# 2c. Commit rendered manifests so Flux can reconcile them
+# 2d. Commit rendered manifests so Flux can reconcile them
 # -----------------------------------------------------------------------
 echo "→ Committing infrastructure manifests..."
 cd "$ROOT_DIR"
@@ -64,7 +70,7 @@ fi
 git push origin "${GITHUB_BRANCH}"
 
 # -----------------------------------------------------------------------
-# 2d. Bootstrap Flux with GitHub (reentrant)
+# 2e. Bootstrap Flux with GitHub (reentrant)
 # -----------------------------------------------------------------------
 echo "→ Bootstrapping Flux into cluster with GitHub repo '${GITHUB_USER}/${GITHUB_REPO}'..."
 flux bootstrap github \

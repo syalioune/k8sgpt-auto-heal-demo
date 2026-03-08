@@ -14,6 +14,7 @@ spec:
       name: k8sgpt-openai-secret
       key: openai-api-key
     anonymized: false
+  targetNamespace: k8sgpt-demo
   noCache: false
   version: v0.4.26
   repository: ghcr.io/k8sgpt-ai/k8sgpt

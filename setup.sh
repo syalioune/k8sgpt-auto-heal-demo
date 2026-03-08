@@ -76,18 +76,43 @@ case "$ACTION" in
     "$ROOT_DIR/scripts/05-deploy-broken-apps.sh" "${2:-all}"
     ;;
 
+  cli-demo)
+    echo "============================================="
+    echo " Deploying broken apps for K8sGPT CLI demo"
+    echo " (namespace: k8sgpt-cli-demo, not managed by Flux)"
+    echo "============================================="
+    echo ""
+    kubectl apply -f "$ROOT_DIR/manifests/cli-demo/"
+    echo ""
+    echo "Waiting for pods to start (they will fail)..."
+    sleep 5
+    kubectl get pods -n k8sgpt-cli-demo
+    echo ""
+    echo "Now run:"
+    echo "  k8sgpt analyze --namespace k8sgpt-cli-demo"
+    echo "  k8sgpt analyze --namespace k8sgpt-cli-demo --explain"
+    ;;
+
+  cli-demo-cleanup)
+    echo "→ Cleaning up K8sGPT CLI demo namespace..."
+    kubectl delete namespace k8sgpt-cli-demo --ignore-not-found
+    echo "Done."
+    ;;
+
   teardown)
     "$ROOT_DIR/scripts/06-teardown.sh"
     ;;
 
   *)
-    echo "Usage: $0 [full|cluster|watcher|break|teardown]"
+    echo "Usage: $0 [full|cluster|watcher|break|cli-demo|cli-demo-cleanup|teardown]"
     echo ""
-    echo "  full      - Complete GitOps setup (cluster + flux + secrets)"
-    echo "  cluster   - Create cluster + bootstrap flux + create secrets only"
-    echo "  watcher   - Deploy the auto-heal watcher (add 'cluster' or 'local')"
-    echo "  break     - Commit broken apps to repo (add 'all|nginx|service|oom|image')"
-    echo "  teardown  - Destroy everything"
+    echo "  full             - Complete GitOps setup (cluster + flux + secrets)"
+    echo "  cluster          - Create cluster + bootstrap flux + create secrets only"
+    echo "  watcher          - Deploy the auto-heal watcher (add 'cluster' or 'local')"
+    echo "  break            - Commit broken apps to repo (add 'all|nginx|service|oom|image')"
+    echo "  cli-demo         - Deploy broken apps for K8sGPT CLI demo (kubectl, no Flux)"
+    echo "  cli-demo-cleanup - Remove the CLI demo namespace"
+    echo "  teardown         - Destroy everything"
     exit 1
     ;;
 esac
