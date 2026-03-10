@@ -1,4 +1,3 @@
-# Intentionally broken: image tag doesn't exist → ImagePullBackOff
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,7 +18,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: nginx:99.99.99-nonexistent
+          image: nginx:stable
           ports:
             - containerPort: 80
           resources:
