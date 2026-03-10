@@ -33,13 +33,14 @@ with human-in-the-loop safety via Pull Requests
 
 <div style="max-width: 650px; margin: 0 auto;">
 <div class="agenda-item"><span class="step-number">1</span> The Problem — Why Auto-Healing?</div>
-<div class="agenda-item"><span class="step-number">2</span> What is FluxCD? — GitOps Primer</div>
-<div class="agenda-item"><span class="step-number">3</span> What is K8sGPT? — AI-Powered Diagnostics</div>
-<div class="agenda-item"><span class="step-number">4</span> Architecture &amp; Components</div>
-<div class="agenda-item"><span class="step-number">5</span> The Remediation Loop</div>
-<div class="agenda-item"><span class="step-number">6</span> Live Demo</div>
-<div class="agenda-item"><span class="step-number">7</span> Security Considerations</div>
-<div class="agenda-item"><span class="step-number">8</span> Takeaways &amp; Next Steps</div>
+<div class="agenda-item"><span class="step-number">2</span> What is GitOps? — Principles &amp; Definition</div>
+<div class="agenda-item"><span class="step-number">3</span> What is FluxCD? — GitOps in Practice</div>
+<div class="agenda-item"><span class="step-number">4</span> What is K8sGPT? — AI-Powered Diagnostics</div>
+<div class="agenda-item"><span class="step-number">5</span> Architecture &amp; Components</div>
+<div class="agenda-item"><span class="step-number">6</span> The Remediation Loop</div>
+<div class="agenda-item"><span class="step-number">7</span> Live Demo</div>
+<div class="agenda-item"><span class="step-number">8</span> Security Considerations</div>
+<div class="agenda-item"><span class="step-number">9</span> Takeaways &amp; Next Steps</div>
 </div>
 
 ---
@@ -80,30 +81,64 @@ They follow patterns that an LLM can learn to fix.
 
 ---
 
-## <span class="step-number">2</span> What is FluxCD?
+## <span class="step-number">2</span> What is GitOps?
 
-### GitOps for Kubernetes
+### Principles &amp; Definition
 
 --
 
-## GitOps in 30 Seconds
+## OpenGitOps Definition
 
 <div class="box">
-<p><strong>GitOps</strong> = Git is the single source of truth for your infrastructure and applications.</p>
-<p class="small" style="margin-top:8px;">An operator running <em>inside</em> the cluster continuously reconciles the live state with what's declared in Git.</p>
-</div>
-
-<div style="text-align:center;">
-<span class="highlight-purple">Git Repo</span>
-<span class="flow-arrow"> &xrarr; </span>
-<span class="highlight-green">GitOps Operator</span>
-<span class="flow-arrow"> &xrarr; </span>
-<span class="highlight-indigo">Kubernetes Cluster</span>
-</div>
-
-<p class="small muted" style="margin-top:15px;">
-No more <code>kubectl apply</code> from laptops. Every change is versioned, auditable, and reversible.
+<p><strong>GitOps</strong> is a set of principles for operating and managing software systems. These principles are derived from modern software operations, but are also rooted in pre-existing and widely adopted best practices.</p>
+<p class="small muted" style="margin-top:8px;">
+&mdash; <a href="https://opengitops.dev">OpenGitOps</a>, a CNCF Sandbox project
 </p>
+</div>
+
+<p class="small" style="margin-top:15px;">
+The OpenGitOps project defines GitOps through <strong>four core principles</strong> that any GitOps-compliant system must follow.
+</p>
+
+--
+
+## The Four OpenGitOps Principles
+
+<div style="text-align:left; max-width:800px; margin:0 auto;">
+<div class="box">
+<p class="small"><strong class="highlight-indigo">1. Declarative</strong> — A system managed by GitOps must have its desired state expressed <em>declaratively</em>.</p>
+</div>
+<div class="box">
+<p class="small"><strong class="highlight-purple">2. Versioned and Immutable</strong> — Desired state is stored in a way that enforces immutability, versioning, and retains a complete version history.</p>
+</div>
+<div class="box">
+<p class="small"><strong class="highlight-green">3. Pulled Automatically</strong> — Software agents automatically pull the desired state declarations from the source.</p>
+</div>
+<div class="box">
+<p class="small"><strong class="highlight-orange">4. Continuously Reconciled</strong> — Software agents <em>continuously</em> observe actual system state and attempt to apply the desired state.</p>
+</div>
+</div>
+
+--
+
+## GitOps in This Demo
+
+| Principle | How It Applies |
+|-----------|---------------|
+| <span class="highlight-indigo">Declarative</span> | All Kubernetes resources are YAML manifests in Git |
+| <span class="highlight-purple">Versioned &amp; Immutable</span> | Every change is a Git commit &mdash; auditable and reversible |
+| <span class="highlight-green">Pulled Automatically</span> | FluxCD pulls from the repo on a schedule &mdash; no <code>kubectl apply</code> |
+| <span class="highlight-orange">Continuously Reconciled</span> | Flux detects drift and re-applies the desired state |
+
+<p class="small muted" style="margin-top:12px;">
+The auto-heal watcher leverages these principles: fixes go through Git (versioned), Flux pulls them (automatic), and the cluster converges (reconciled).
+</p>
+
+---
+
+## <span class="step-number">3</span> What is FluxCD?
+
+### GitOps for Kubernetes
 
 --
 
@@ -141,7 +176,7 @@ When a PR is merged, Flux detects the change and reconciles &mdash; no CI pipeli
 
 ---
 
-## <span class="step-number">3</span> What is K8sGPT?
+## <span class="step-number">4</span> What is K8sGPT?
 
 ### AI-powered Kubernetes diagnostics
 
@@ -358,7 +393,7 @@ Deletes the <code>k8sgpt-cli-demo</code> namespace. No impact on the Flux-manage
 
 ---
 
-## <span class="step-number">4</span> Architecture
+## <span class="step-number">5</span> Architecture
 
 ### Four components, one feedback loop
 
@@ -526,7 +561,7 @@ k8sgpt-auto-heal-demo/
 
 ---
 
-## <span class="step-number">5</span> The Remediation Loop
+## <span class="step-number">6</span> The Remediation Loop
 
 ### From broken pod to merged PR — automatically
 
@@ -582,7 +617,7 @@ while True:
 
 ---
 
-## <span class="step-number">6</span> Live Demo
+## <span class="step-number">7</span> Live Demo
 
 ### Let's break things and watch the cluster heal itself
 
@@ -723,7 +758,7 @@ Deletes the Kind cluster. GitHub repo is preserved.
 
 ---
 
-## <span class="step-number">7</span> Security Considerations
+## <span class="step-number">8</span> Security Considerations
 
 ### Safety by design
 
@@ -810,7 +845,7 @@ The operator only produces <code>Result</code> CRDs — the watcher handles reme
 
 ---
 
-## <span class="step-number">8</span> Takeaways
+## <span class="step-number">9</span> Takeaways
 
 --
 
