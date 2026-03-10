@@ -49,7 +49,9 @@ OUTPUT FORMAT (use these exact markers):
 ---MANIFEST_PATH---
 <relative path in the repo — MUST match the original file path when one is provided>
 ---MANIFEST---
-<the complete fixed YAML manifest>
+<the complete fixed YAML manifest — raw YAML only, NO markdown code fences>
+
+CRITICAL: Do NOT wrap any section in markdown code fences (```). Output raw text only.
 """
 
 # ---------------------------------------------------------------------------
@@ -111,7 +113,28 @@ def parse_response(response_text):
     if current_section:
         sections[current_section] = "\n".join(current_content).strip()
 
+    # Strip markdown code fences the LLM sometimes wraps around sections
+    for key in ("MANIFEST", "MANIFEST_PATH"):
+        if key in sections:
+            sections[key] = _strip_code_fences(sections[key])
+
     return sections
+
+
+def _strip_code_fences(text):
+    """Remove markdown code fences (```yaml ... ```) from text."""
+    lines = text.split("\n")
+    # Strip leading blank lines, then the opening fence (e.g. ```yaml, ```yml, ```)
+    while lines and lines[0].strip() == "":
+        lines = lines[1:]
+    if lines and lines[0].strip().startswith("```"):
+        lines = lines[1:]
+    # Strip trailing blank lines, then the closing fence
+    while lines and lines[-1].strip() == "":
+        lines = lines[:-1]
+    if lines and lines[-1].strip() == "```":
+        lines = lines[:-1]
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
