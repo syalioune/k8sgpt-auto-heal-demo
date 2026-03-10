@@ -1,4 +1,3 @@
-# Intentionally broken: memory limit too low for the stress process → OOMKilled
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,5 +27,4 @@ spec:
               memory: 50Mi
             limits:
               cpu: 100m
-              # This is way too low for 200M allocation → OOMKilled
-              memory: 100Mi
+              memory: 256Mi
